@@ -65,7 +65,7 @@ SELECT
     COALESCE(ic.rounds_completed, 0) AS interview_rounds,
     COALESCE(ic.furthest_round, 0) AS furthest_round,
     a.excitement_level,
-    a.salary_min || 'k - ' || a.salary_max || 'k' AS salary_range
+    (a.salary_min / 1000) || 'k - ' || (a.salary_max / 1000) || 'k' AS salary_range
 FROM applications a
 JOIN companies c ON c.id = a.company_id
 LEFT JOIN interview_counts ic ON ic.application_id = a.id

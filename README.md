@@ -10,12 +10,25 @@ Spreadsheets fall apart after 20+ applications. This database tracks everything 
 
 Six tables connected by foreign keys:
 
+```mermaid
+erDiagram
+    referral_sources ||--o{ applications : "sourced"
+    companies ||--o{ applications : "has"
+    applications ||--o{ interviews : "has"
+    applications ||--o{ follow_ups : "has"
+    applications ||--o{ contacts : "related to"
+    companies ||--o{ contacts : "works at"
+    contacts ||--o{ follow_ups : "sent to"
+
+    referral_sources { serial id PK varchar name UK }
+    companies { serial id PK varchar name varchar industry varchar company_size numeric glassdoor_rating }
+    applications { serial id PK int company_id FK int source_id FK varchar position_title int salary_min int salary_max varchar status date applied_date }
+    interviews { serial id PK int application_id FK int round_number varchar interview_type boolean went_well }
+    contacts { serial id PK int company_id FK int application_id FK varchar name varchar relationship }
+    follow_ups { serial id PK int application_id FK int contact_id FK varchar follow_up_type boolean got_response }
 ```
-referral_sources ──┐
-                   ├── applications ──┬── interviews
-companies ─────────┘                  ├── contacts
-                                      └── follow_ups
-```
+
+> Full ERD with all columns available in [`docs/erd.mmd`](docs/erd.mmd)
 
 | Table | Purpose |
 |-------|---------|
@@ -74,6 +87,26 @@ FROM stages;
 - Multiple `JOIN` types (INNER, LEFT)
 - Check constraints and indexing strategy
 - Normalized schema design with foreign keys
+- Reusable views for common access patterns
+
+## Views
+
+Five views in `schema/002_create_views.sql` that wrap the most common joins:
+
+| View | What it does |
+|------|-------------|
+| `v_application_details` | Full application info with company, source, and calculated fields (days to response, salary range) |
+| `v_interview_history` | Interview rounds with company and position context |
+| `v_contacts` | Contact directory with company and application status |
+| `v_follow_up_log` | Follow-up timeline with contact and company info |
+| `v_pipeline_summary` | One-row-per-status breakdown with counts and avg salary |
+
+After creating the views, you can query them like regular tables:
+
+```sql
+SELECT * FROM v_application_details WHERE status = 'offer';
+SELECT * FROM v_pipeline_summary;
+```
 
 ## Setup
 
@@ -85,6 +118,9 @@ psql -U postgres -c "CREATE DATABASE job_hunt_tracker;"
 
 # build the schema
 psql -U postgres -d job_hunt_tracker -f schema/001_create_tables.sql
+
+# create views
+psql -U postgres -d job_hunt_tracker -f schema/002_create_views.sql
 
 # load sample data
 psql -U postgres -d job_hunt_tracker -f data/seed.sql
@@ -98,17 +134,20 @@ psql -U postgres -d job_hunt_tracker -f queries/analysis.sql
 ```
 job-hunt-tracker/
 ├── schema/
-│   └── 001_create_tables.sql    -- table definitions and indexes
+│   ├── 001_create_tables.sql    -- table definitions and indexes
+│   └── 002_create_views.sql     -- reusable views for common joins
 ├── data/
 │   └── seed.sql                 -- realistic sample data (15 apps, 10 companies)
 ├── queries/
 │   └── analysis.sql             -- 12 analytical queries
+├── docs/
+│   └── erd.mmd                  -- full entity-relationship diagram (Mermaid)
 └── README.md
 ```
 
 ## What I'd Add Next
 
-- Views for commonly used joins (e.g. `v_application_details`)
-- Stored procedures for status transitions
+- Stored procedures for status transitions with validation
 - A `salary_offers` table for tracking negotiation history
 - Indexes tuned to query patterns after profiling with `EXPLAIN ANALYZE`
+- Trigger functions to auto-update `closed_date` when status changes to a terminal state

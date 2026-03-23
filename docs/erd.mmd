@@ -1,0 +1,82 @@
+erDiagram
+    referral_sources {
+        serial id PK
+        varchar name UK
+    }
+
+    companies {
+        serial id PK
+        varchar name
+        varchar industry
+        varchar company_size
+        text careers_url
+        numeric glassdoor_rating
+        text notes
+        timestamp created_at
+    }
+
+    applications {
+        serial id PK
+        int company_id FK
+        int source_id FK
+        varchar position_title
+        text job_url
+        int salary_min
+        int salary_max
+        varchar location
+        varchar remote_policy
+        varchar status
+        date applied_date
+        date response_date
+        date closed_date
+        int excitement_level
+        text notes
+        timestamp created_at
+    }
+
+    contacts {
+        serial id PK
+        int company_id FK
+        int application_id FK
+        varchar name
+        varchar role
+        varchar email
+        text linkedin_url
+        varchar relationship
+        text notes
+        timestamp created_at
+    }
+
+    interviews {
+        serial id PK
+        int application_id FK
+        int round_number
+        varchar interview_type
+        timestamp scheduled_at
+        int duration_minutes
+        varchar interviewer_name
+        varchar interviewer_role
+        boolean went_well
+        text notes
+        timestamp created_at
+    }
+
+    follow_ups {
+        serial id PK
+        int application_id FK
+        int contact_id FK
+        varchar follow_up_type
+        timestamp sent_at
+        varchar method
+        text content_summary
+        boolean got_response
+        timestamp created_at
+    }
+
+    companies ||--o{ applications : "has"
+    referral_sources ||--o{ applications : "sourced"
+    applications ||--o{ interviews : "has"
+    applications ||--o{ follow_ups : "has"
+    applications ||--o{ contacts : "related to"
+    companies ||--o{ contacts : "works at"
+    contacts ||--o{ follow_ups : "sent to"
